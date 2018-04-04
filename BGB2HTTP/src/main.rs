@@ -8,6 +8,7 @@ extern crate clap;
 extern crate byteorder;
 
 use std::io;
+use std::fs::*;
 use std::cell::{Cell, RefCell};
 use std::sync::Arc;
 use futures::{future, Future, BoxFuture, Stream, Async};
@@ -308,7 +309,7 @@ pub struct SyncState{ i: usize }
 #[derive(Default)]
 pub struct GetLenState{ l: Vec<u8> }
 // cannot have a default for this
-pub struct GetReqState{ d: Vec<u8>, s: usize }
+pub struct GetReqState{ d: Vec<u8>, s: usize, overide: Option<Vec<u8>> } // spoof with override if Some; leave out r to not conflict with reserved keyword
 #[derive(Default)]
 pub struct SendState{ d: Vec<u8> }
 // cannot have a default for this
@@ -357,9 +358,18 @@ impl GetLenState{
                 // size exceeded, reset to Sync (unlike JS version)
                 return (Sync(SyncState::default()), FAIL);
             }
+            if req_size == 7{ // this is a map load
+                if let Ok(mut f) = File::open("./map_override"){
+                    use std::io::Read;
+                    let mut ovr = l.clone();
+                    f.read_to_end(&mut ovr).expect("Failed to read from map_override file");
+                    return (GetReq(GetReqState{ d: l, s: req_size as usize, overide: Some(ovr) }), SUCCESS) // advance to GetReq
+                }
+            }
+                    
             // I can't work out why from the source, but it works if the first two elems of d are
             // the size.
-            (GetReq(GetReqState{ d: l, s: req_size as usize }), SUCCESS) // advance to GetReq
+            (GetReq(GetReqState{ d: l, s: req_size as usize, overide: None }), SUCCESS) // advance to GetReq
         }
         else{
             (GetLen(GetLenState{l}), SUCCESS)
@@ -373,15 +383,22 @@ impl GetReqState{
         const SUCCESS:u8 = 204;
 
         let mut d = self.d;
+        let overide = self.overide;
         let s = self.s;
         
         d.push(byte);
         if d.len() >= s { // if reached size
             info!("got {} req bytes: {:?}", s, d);
-            (Send(SendState{ d }), SUCCESS)
+            if let Some(ovr) = overide{
+                info!("overrode with: {:?}", ovr);
+                (Send(SendState{ d: ovr }), SUCCESS)
+            }
+            else{
+                (Send(SendState{ d }), SUCCESS)
+            }
         }
         else{
-            (GetReq(GetReqState{ d, s }), SUCCESS)
+            (GetReq(GetReqState{ d, s, overide }), SUCCESS)
         }
     }
 }
