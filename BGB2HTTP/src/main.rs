@@ -11,7 +11,7 @@ use std::io;
 use std::cell::{Cell, RefCell};
 use std::sync::Arc;
 use futures::{future, Future, BoxFuture, Stream, Async};
-use hyper::{header::ContentLength, Client, Uri, Method, Request, StatusCode};
+use hyper::{header::{ContentLength, UserAgent}, Client, Uri, Method, Request, StatusCode};
 use tokio_core::{io::{Io, Codec, Framed, EasyBuf}, reactor::Handle};
 use tokio_proto::TcpServer;
 use tokio_proto::pipeline::ServerProto;
@@ -403,7 +403,11 @@ impl SendState{
             let mut req = Request::new(Method::Post, uri.clone());
             let b64 = base64::encode(&d[..]);
             info!("cli -> srv: [{}]", b64);
-            req.headers_mut().set(ContentLength(b64.len() as u64));
+            {
+                let hm = req.headers_mut();
+                hm.set(ContentLength(b64.len() as u64));
+                hm.set(UserAgent::new("selenologist-BGB2HTTP/0.1"));
+            }
             req.set_body(b64);
 
             (Poll(PollState{ f: Box::new(Client::new(handle)
