@@ -1,0 +1,11 @@
+digraph states{
+    1 -> 2 [label="hsc >= 3"];
+    2 -> 3 [label="cl=le16(b)"];
+    3 -> 4 [label="len(b) >= cl"];
+    4 -> 1 [label="e != 85"];
+    4 -> 5 [label="send"];
+    5 -> 1 [label="e != 85"];
+    5 -> 6 [label="brC && brS"];
+    6 -> 1 [label="empty(b) || e != 204"];
+}
+

@@ -1,0 +1,18 @@
+digraph states{
+    1 [label="SYNC"];
+    2 [label="GET_LEN"];
+    3 [label="GET_REQ"];
+    4 [label="SEND"];
+    5 [label="POLL"];
+    6 [label="RECV"];
+
+    1 -> 2 [label="hsc >= 3"];
+    2 -> 3 [label="cl=le16(b)"];
+    3 -> 4 [label="len(b) >= cl"];
+    4 -> 1 [label="e != 85"];
+    4 -> 5 [label="send"];
+    5 -> 1 [label="e != 85"];
+    5 -> 6 [label="brC && brS"];
+    6 -> 1 [label="empty(b) || e != 204"];
+}
+
