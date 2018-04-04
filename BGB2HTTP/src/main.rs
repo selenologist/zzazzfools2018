@@ -7,11 +7,11 @@ extern crate base64;
 extern crate clap;
 extern crate byteorder;
 
-use std::io::{self, ErrorKind, Write};
+use std::io;
 use std::cell::{Cell, RefCell};
 use std::sync::Arc;
 use futures::{future, Future, BoxFuture, Stream, Async};
-use hyper::{client::FutureResponse, header::ContentLength, Client, Uri, Method, Request, StatusCode};
+use hyper::{header::ContentLength, Client, Uri, Method, Request, StatusCode};
 use tokio_core::{io::{Io, Codec, Framed, EasyBuf}, reactor::Handle};
 use tokio_proto::TcpServer;
 use tokio_proto::pipeline::ServerProto;
@@ -106,6 +106,7 @@ impl BgbJoypadUpdate{
     }
 }
 
+#[allow(non_snake_case)]
 mod CommandConsts{
     pub const VERSION:        u8 =   1;
     pub const JOYPAD:         u8 = 101;
@@ -309,7 +310,7 @@ pub struct GetLenState{ l: Vec<u8> }
 // cannot have a default for this
 pub struct GetReqState{ d: Vec<u8>, s: usize }
 #[derive(Default)]
-pub struct SendState{ d: Vec<u8>, s: usize }
+pub struct SendState{ d: Vec<u8> }
 // cannot have a default for this
 pub struct PollState{ f: Box<Future<Item=String, Error=()>> }
 // cannot have a default for this
@@ -326,7 +327,7 @@ impl SyncState{
         if byte == IN_SYNC[i] {
             info!("sync {} match", i);
             let out = OUT_SYNC[i];
-            if((i + 1) >= OUT_SYNC.len()){
+            if (i + 1) >= OUT_SYNC.len() {
                 (GetLen(GetLenState::default()), out) // advance to GetLen
             }
             else{
@@ -340,7 +341,7 @@ impl SyncState{
 }
 
 impl GetLenState{
-    pub fn update(mut self, byte: u8) -> (ZzazzSerialState, u8){
+    pub fn update(self, byte: u8) -> (ZzazzSerialState, u8){
         use ZzazzSerialState::*;
         const SUCCESS:u8 = 204;
         const FAIL:   u8 = 0;
@@ -367,7 +368,7 @@ impl GetLenState{
 }
 
 impl GetReqState{
-    pub fn update(mut self, byte: u8) -> (ZzazzSerialState, u8){
+    pub fn update(self, byte: u8) -> (ZzazzSerialState, u8){
         use ZzazzSerialState::*;
         const SUCCESS:u8 = 204;
 
@@ -377,7 +378,7 @@ impl GetReqState{
         d.push(byte);
         if d.len() >= s { // if reached size
             info!("got {} req bytes: {:?}", s, d);
-            (Send(SendState{ d, s }), SUCCESS)
+            (Send(SendState{ d }), SUCCESS)
         }
         else{
             (GetReq(GetReqState{ d, s }), SUCCESS)
@@ -386,7 +387,7 @@ impl GetReqState{
 }
 
 impl SendState{
-    pub fn update(mut self, handle: &Handle, uri: &Uri, byte: u8) -> (ZzazzSerialState, u8){
+    pub fn update(self, handle: &Handle, uri: &Uri, byte: u8) -> (ZzazzSerialState, u8){
         use ZzazzSerialState::*;
         // in either case, return 102
         const RETURN:u8 = 102;
@@ -426,7 +427,7 @@ impl SendState{
 }
 
 impl PollState{
-    pub fn update(mut self, byte: u8) -> (ZzazzSerialState, u8){
+    pub fn update(self, byte: u8) -> (ZzazzSerialState, u8){
         use ZzazzSerialState::*;
         const SUCCESS: u8 = 51;
         const NOTREADY:u8 = 102;
@@ -467,7 +468,7 @@ impl PollState{
 }
 
 impl RecvState{
-    pub fn update(mut self, byte: u8) -> (ZzazzSerialState, u8){
+    pub fn update(self, byte: u8) -> (ZzazzSerialState, u8){
         use ZzazzSerialState::*;
         let d = self.d;
         let i = self.i;
@@ -484,7 +485,7 @@ impl RecvState{
 }
 
 impl ZzazzSerialState{
-    pub fn update(mut self, handle: &Handle, uri: &Uri, byte: u8) -> (Self, u8){
+    pub fn update(self, handle: &Handle, uri: &Uri, byte: u8) -> (Self, u8){
         use ZzazzSerialState::*;
         match self{
             Sync(sy)   => sy.update(byte),
