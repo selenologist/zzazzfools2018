@@ -1,0 +1,6 @@
+At $B00F is additional code that checks whether the player should be standing on the current tile, as walk-through-walls anticheat.
+This can be bypassed by replacing the "jr z,$B041" at $B014 with just "jr $B041".
+The gameshark code to do this is 011814B0, as the byte at $B014 (0x28) will be replaced with the unconditional JR instruction 0x18.
+You can now use the regular WTW code 010138CD and the anticheat will not be triggered.
+
+Unfortunately I found this after completing the first Cracker Cavern challenge, by simply editing the player's position to be on the other side of the rocks.
