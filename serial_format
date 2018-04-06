@@ -30,16 +30,30 @@ def chk(dat):
     return d, e
 Yeah, for $C68E = $8C and $C68E = $31, the result in DE $00b7 which we see. Fuck yeah.
 inv + loc + sum = 41 + 2 + 2 = 45 bytes
-The last byte APPEARS to always be 3.
+The remaining byte APPEARS to always be 3.
 
 Oh! The 7-byte map ID request seems to be
 07 00 AA BB 04 XX YY
 where AA is YY - XX + D
 and   BB is E + XX - D (-1 if D is zero)
 and XXYY is the little-endian map ID
+[edit: no, that's not quite right... this only sometimes produces valid AA and BB]
 
 Heck, replacing $C68E-$C68F in the checksum function seems to have worked...
 
+Completion of Cavern challenge II looked like this:
+BGB2HTTP: got 50 req bytes: [50, 0, 207, 234, 5, 173, 222, 55, 19, 6, 7, 1, 89, 1, 6, 1, 69, 1, 90, 1, 88, 1, 255, 0, 255, 0, 255, 1, 255, 1, 255, 1, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
+BGB2HTTP: cli -> srv: [MgDP6gWt3jcTBgcBWQEGAUUBWgFYAf8A/wD/Af8B/wH///////////////////////8=]
+BGB2HTTP: got OK response from server, awaiting body
+BGB2HTTP: srv -> cli: [CABzbAUsxtw=]
+
+Obscured Path completion looked like this:
+BGB2HTTP: got req_size 50
+BGB2HTTP: got 50 req bytes: [50, 0, 169, 202, 5, 160, 28, 222, 21, 6, 7, 1, 89, 1, 6, 1, 69, 1, 90, 1, 88, 1, 255, 0, 255, 0, 255, 1, 255, 1, 255, 1, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
+BGB2HTTP: cli -> srv: [MgCpygWgHN4VBgcBWQEGAUUBWgFYAf8A/wD/Af8B/wH///////////////////////8=]
+BGB2HTTP: got OK response from server, awaiting body
+BGB2HTTP: srv -> cli: [CAAUSwUvPQM=]
+BGB2HTTP: done receiving
 
 Unrelated?:
 Code at $AFD9 generates an array at $C660 of the positions around DE...
