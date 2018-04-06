@@ -1,0 +1,45 @@
+This is very stream-of-consciousness as I worked things out.
+
+The SYNC exchange is at $DAAC. It sends $DA, $CF, $EB making sure it gets replies $A5, %5A, $0A.
+So calling $DA8B exchanges a byte... via hSerialReceiveData ($FFAD)
+Other code calls $DA99 which appears to do the same but poll hSerialReceivedNewData ($FFA9) instead of just delaying for a frame.
+
+cli -> srv: [MAC3AAMGBwFZAQYBRQFaAVgB/wD/AP8B/wH/Af///////////////////////4wx]
+contains [..., 6, 7, 1, 89, 1, 6, 1, 69, 1, 90, 1, 88, 1, 255, 0, 255, 0, 255, 1, 255, 1, 255, 1, ...]
+looks kinda like an inventory... and yep that's what I have at wNumBagItems ($D31C)
+So that's 41/46 bytes accounted for
+The code that loads this data is at $ACC8. At this point DE is at $C665... after CopyData, HL is set to $C68E which is just after the copied inventory.
+Then $DA48 -> $C68E, $DA49 -> $C68F
+Is this the current map? Seems to be, that or it's the requested map
+
+Is $DB4D some kind of checksum function?
+Loads size @ $C660 into BC
+Skips until $C665
+B is seemingly always zero so the "or b" is like "or 0" and basically checks if C is zero
+Appears to XOR D with [HL] storing the result in D, and add E to (the same) [HL] for C bytes after initial HL
+
+def update_de(d, e, byte):
+    d = d ^ byte
+    e = (e + byte) & 0xFF
+    return d, e
+def chk(dat):
+    d = 0x5a
+    e = 0xa5
+    for x in dat:
+        d, e = update_de(d, e, x)
+    return d, e
+Yeah, for $C68E = $8C and $C68E = $31, the result in DE $00b7 which we see. Fuck yeah.
+inv + loc + sum = 41 + 2 + 2 = 45 bytes
+The last byte APPEARS to always be 3.
+
+Oh! The 7-byte map ID request seems to be
+07 00 AA BB 04 XX YY
+where AA is YY - XX + D
+and   BB is E + XX - D (-1 if D is zero)
+and XXYY is the little-endian map ID
+
+Heck, replacing $C68E-$C68F in the checksum function seems to have worked...
+
+
+Unrelated?:
+Code at $AFD9 generates an array at $C660 of the positions around DE...
